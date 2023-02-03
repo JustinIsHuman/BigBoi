@@ -2,6 +2,7 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj.motorcontrol.MotorController;
@@ -13,6 +14,8 @@ import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
 //import edu.wpi.first.wpilibj.DoubleSolenoid.Value.*;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.cameraserver.CameraServer;
+
 
 
 /**
@@ -48,8 +51,8 @@ public class Robot extends TimedRobot {
     m_rightMotor.setInverted(true); //  Inverts motor
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
-  
     m_robotContainer = new RobotContainer();
+    CameraServer.startAutomaticCapture();
   }
 
   /**
@@ -89,11 +92,17 @@ public class Robot extends TimedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
     }
+    pcmCompressor.disable();
+    m_robotDrive.setSafetyEnabled(false);
+    m_robotDrive.tankDrive(.5, -.5); //Literally just drives at .2 speed (1 is full speed), Negative is backwards (I think)
+    Timer.delay((3.7)); //Waits four seconds
+    m_robotDrive.tankDrive(0, 0);
   }
   @Override
   public void autonomousPeriodic() //Autonomous mode
   {  
     //This is where the autonomous code goes 
+   
   }
 
   @Override
@@ -111,25 +120,35 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() //Operator mode func
   {
-   
-   m_robotDrive.tankDrive(-m_driverController.getLeftY(), m_driverController.getRightY());
+  
+      //Accuracy mode -- (Code untested)
+    if(m_driverController.getRawButton(4))//Button four is right trigger -- Done differently -- where all other buttons are just buttons (Pressed or not)), Right trigger can be half pressed. It has an axis
+    { 
+      double LeftSpeed = m_driverController.getLeftY() / 2;  //Divide speeds by two 
+      double RightSpeed = m_driverController.getLeftY() / 2; 
+      m_robotDrive.arcadeDrive(-LeftSpeed, RightSpeed); // Uses arcade drive
+    }
+    else
+    { //Normal mode 
+       m_robotDrive.tankDrive(-m_driverController.getLeftY(), m_driverController.getRightY());
+    }
 
-   if(m_driverController.getBButtonPressed()) //Does same thing as clicking left and right bumpers 
-   {
-    Solenoid.toggle();
-   }
-    if(m_driverController.getRightBumperPressed())//Solenoid shi
+    if(m_driverController.getBButtonPressed()) //Does same thing as clicking left and right bumpers 
     {
-      Solenoid.set(Value.kForward);
+     Solenoid.toggle();
     }
-     if(m_driverController.getLeftBumperPressed())//Solenoid shi
-    {
-      Solenoid.set(Value.kReverse);
-    }
-    if(m_driverController.getXButtonPressed())//Reset solenoid
-    {
-      Solenoid.set(Value.kOff);
-    }
+     if(m_driverController.getRightBumperPressed())//Solenoid shi
+     {
+       Solenoid.set(Value.kForward);
+     }
+      if(m_driverController.getLeftBumperPressed())//Solenoid shi
+     {
+       Solenoid.set(Value.kReverse);
+     }
+
+
+
+    
     if(m_driverController.getAButtonPressed()) //Toggle compressor 
     {
       if(pcmCompressor.isEnabled())

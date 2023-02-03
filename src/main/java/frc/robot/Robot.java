@@ -73,7 +73,11 @@ public class Robot extends TimedRobot {
 
   /** This function is called once each time the robot enters Disabled mode. */
   @Override
-  public void disabledInit() {}
+  public void disabledInit()
+  {
+
+
+  }
 
   @Override
   public void disabledPeriodic() 
@@ -88,21 +92,21 @@ public class Robot extends TimedRobot {
 
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
-    // schedule the autonomous command (example)
+    //Test Code
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
     }
     pcmCompressor.disable();
     m_robotDrive.setSafetyEnabled(false);
     m_robotDrive.tankDrive(.5, -.5); //Literally just drives at .2 speed (1 is full speed), Negative is backwards (I think)
-    Timer.delay((3.7)); //Waits four seconds
+    Timer.delay((3.7)); //Waits X seconds
     m_robotDrive.tankDrive(0, 0);
   }
   @Override
   public void autonomousPeriodic() //Autonomous mode
   {  
     //This is where the autonomous code goes 
-   
+
   }
 
   @Override
@@ -115,22 +119,27 @@ public class Robot extends TimedRobot {
     }
     pcmCompressor.disable(); //Since compressor automatically turns on when teleop enabled -- disable 
     Solenoid.set(Value.kOff); 
+    m_robotDrive.setSafetyEnabled(true);
+
   }
 
   @Override
   public void teleopPeriodic() //Operator mode func
   {
   
-      //Accuracy mode -- (Code untested)
-    if(m_driverController.getRawButton(4))//Button four is right trigger -- Done differently -- where all other buttons are just buttons (Pressed or not)), Right trigger can be half pressed. It has an axis
+      //Accuracy mode -- (Code untested) Possibly control an LED stip with speed modes?
+    if(m_driverController.getRawButton(4))//Button ___ is right trigger -- Done differently -- where all other buttons are just buttons (Pressed or not)), Right trigger can be half pressed. It has an axis
     { 
-      double LeftSpeed = m_driverController.getLeftY() / 2;  //Divide speeds by two 
-      double RightSpeed = m_driverController.getLeftY() / 2; 
+      m_robotDrive.setMaxOutput(.5);
+      double LeftSpeed = m_driverController.getLeftY();
+      double RightSpeed = m_driverController.getLeftY();
       m_robotDrive.arcadeDrive(-LeftSpeed, RightSpeed); // Uses arcade drive
     }
     else
     { //Normal mode 
+       m_robotDrive.setMaxOutput(1);
        m_robotDrive.tankDrive(-m_driverController.getLeftY(), m_driverController.getRightY());
+       
     }
 
     if(m_driverController.getBButtonPressed()) //Does same thing as clicking left and right bumpers 
@@ -145,10 +154,7 @@ public class Robot extends TimedRobot {
      {
        Solenoid.set(Value.kReverse);
      }
-
-
-
-    
+  
     if(m_driverController.getAButtonPressed()) //Toggle compressor 
     {
       if(pcmCompressor.isEnabled())

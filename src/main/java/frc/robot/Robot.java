@@ -16,6 +16,10 @@ import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
 
 
 
@@ -35,9 +39,9 @@ public class Robot extends TimedRobot {
 
   private Command m_autonomousCommand;
   private RobotContainer m_robotContainer;
-
   private final MotorController m_leftMotor = new PWMVictorSPX(1);
   private final MotorController m_rightMotor = new PWMVictorSPX(0);
+  private final MotorController m_arm = new PWMVictorSPX(2);
   private final XboxController m_driverController = new XboxController(0);
   private final DifferentialDrive m_robotDrive = new DifferentialDrive(m_leftMotor, m_rightMotor);
   private final DoubleSolenoid Solenoid = new DoubleSolenoid(1, PneumaticsModuleType.CTREPCM, 4, 5); //Need to ensure ports are correct
@@ -78,8 +82,7 @@ public class Robot extends TimedRobot {
   @Override
   public void disabledInit()
   {
-
-
+    
   }
 
   @Override
@@ -89,11 +92,14 @@ public class Robot extends TimedRobot {
   }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
+  double speed = .5;
   @Override
   public void autonomousInit() //Runs when autonomous mode begins 
    {
+    speed = .5;
 
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
+    
 
     //Test Code
     if (m_autonomousCommand != null) {
@@ -101,38 +107,49 @@ public class Robot extends TimedRobot {
     }
     pcmCompressor.disable();
     m_robotDrive.setSafetyEnabled(false);
-    gyro.calibrate();
-
-    //m_robotDrive.tankDrive(.5, -.5); //Literally just drives at .2 speed (1 is full speed), Negative is backwards (I think)
-    //Timer.delay((3.7)); //Waits X seconds
-    //m_robotDrive.tankDrive(0, 0);
+    gyro.reset();
+    Timer.delay(5);
+    double axis = gyro.getAngle();
+    while(axis < 12.0 && axis > -12.0)
+    {
+      axis = gyro.getAngle();
+      axis = Math.round(axis);
+      m_robotDrive.tankDrive(-.6, .6);  
+    }
+    m_robotDrive.tankDrive(0, 0);    
+    System.out.println("hit");
+    
   }
   @Override
   public void autonomousPeriodic() //Autonomous mode
   {  
+
     //This is where the autonomous code goes 
     //Auto Balance
-    double axis = gyro.getAngle();
-    System.out.println(axis);
-    
-    
-      if(axis > 0.0)
+      double axis = gyro.getAngle();
+      axis = Math.round((axis));
+      System.out.println(axis);
+      SmartDashboard.putNumber("Gyro", axis);
+
+      if(axis > 0.0)//Forwards
       {
-        m_robotDrive.tankDrive(.4, -.4);
+        m_robotDrive.tankDrive(speed, -speed);
       }
       else if (axis < 0.0)//Backwards
       {
-        m_robotDrive.tankDrive(-.4, .4);
+        m_robotDrive.tankDrive(-speed, speed);    
       }
-      else if(axis == 0.0)
+      else//If flat
       {
-        m_robotDrive.tankDrive(0, 0);
-        Timer.delay(.3)
-      }
-    Timer.delay(.5);
-    
-
+         m_robotDrive.tankDrive(0, 0);
+         //Timer.delay(5);
+         speed = speed * .8;
+         System.out.println("flat");   
+      }    
   }
+  int mode = 0;
+  int speed1 = 3;
+
 
   @Override
   public void teleopInit() //Runs when operator mode begins
@@ -151,28 +168,83 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() //Operator mode func
-  {
+   {
+  
       double axis = gyro.getAngle();
       axis = Math.round((axis));
       System.out.println(axis);
       System.out.flush();
-      
-  
+
+      if(m_driverController.getRightStickButtonPressed())
+      {
+        m_arm.set(.2);
+        Timer.delay(.5);
+        m_arm.set(0);
+
+      }
+      if(m_driverController.getLeftStickButtonPressed())
+      {
+        m_arm.set(-.2);
+        Timer.delay(.5);
+        m_arm.set(0);
+      }
       //Accuracy mode -- (Code untested) Possibly control an LED stip with speed modes?
-    if(m_driverController.getRawButton(4))//Button ___ is right trigger -- Done differently -- where all other buttons are just buttons (Pressed or not)), Right trigger can be half pressed. It has an axis
+      if(m_driverController.getYButtonPressed())//Drive mode toggle
+      { 
+        System.out.println("Y press; mode: " + mode); 
+        if(mode == 0)
+        {
+          mode = 1;
+        }
+        else
+        {
+          mode = 0;
+        }
+      }
+      if(m_driverController.getXButtonPressed()) // Speed mode toggle
+      {
+        if(speed1 == 3)
+        {
+          speed1 = 0;
+        }
+        else if(speed1 == 0)
+        {
+          speed1 = 1;
+        } else if (speed1 == 1)
+        {
+          speed1 = 2;
+        } else if(speed1 == 2)
+        {
+          speed1 = 3;
+        }
+      }
+      if(speed1 == 0) //Speed modes
+      {
+        m_robotDrive.setMaxOutput(.25);
+        System.out.println("SuperSlow");
+
+      } else if(speed1 == 1)
+      {
+        m_robotDrive.setMaxOutput(.50);
+        System.out.println("Medium");
+      }
+      else
+      {
+        m_robotDrive.setMaxOutput(1);
+        System.out.println("Full Speed");
+      }
+    if(mode == 1) //Arcade mode
     { 
-      m_robotDrive.setMaxOutput(.5);
-      double LeftSpeed = m_driverController.getLeftY();
+      
+      double LeftSpeed = m_driverController.getRightX();
       double RightSpeed = m_driverController.getLeftY();
-      m_robotDrive.arcadeDrive(-LeftSpeed, RightSpeed); // Uses arcade drive
+      m_robotDrive.arcadeDrive(LeftSpeed, RightSpeed); // Uses arcade drive
     }
-    else
-    { //Normal mode 
-       m_robotDrive.setMaxOutput(1);
+    else //Tank mode
+    {  
        m_robotDrive.tankDrive(-m_driverController.getLeftY(), m_driverController.getRightY());
     }
-
-    if(m_driverController.getBButtonPressed()) //Does same thing as clicking left and right bumpers 
+    if(m_driverController.getAButtonPressed()) //Does same thing as clicking left and right bumpers 
     {
      Solenoid.toggle();
     }
@@ -185,7 +257,7 @@ public class Robot extends TimedRobot {
        Solenoid.set(Value.kReverse);
      }
   
-    if(m_driverController.getAButtonPressed()) //Toggle compressor 
+    if(m_driverController.getBButtonPressed()) //Toggle compressor 
     {
       if(pcmCompressor.isEnabled())
       {
@@ -198,17 +270,31 @@ public class Robot extends TimedRobot {
       //pcmCompressor.enableDigital(); //Compressor turns on when *pressure switch* indicates system is not full
      // Colin.toggle();
     }
+    
   }
 
   @Override
   public void testInit() //Runs when test mode begins
   {  
+    
     CommandScheduler.getInstance().cancelAll();//Cancels everything when running test mode
+
+    pcmCompressor.disable();
+    gyro.reset();
+    
   }
 
   @Override
   public void testPeriodic() //Test mode func -- this mode kinda dumb 
   {
+
+    double axis = gyro.getAngle();
+    axis = Math.round((axis));
+    System.out.println(axis);
+    
+    
+    SmartDashboard.putNumber("Gyro", axis);
+    
 
   }
 }

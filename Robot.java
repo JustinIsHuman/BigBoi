@@ -129,10 +129,9 @@ public class Robot extends TimedRobot {
       axis = Math.round(axis);
       m_robotDrive.tankDrive(-.5, .5);  
 
-      long end_time = start_time + wait_time;
-      if(end_time !< wait_time)
+      if(System.currentTimeMillis() > System.currentTimeMillis() + 4000)
       {
-        break; 
+         m_robotDrive.tankDrive(0, 0);  
       }
     }
     m_robotDrive.tankDrive(0, 0);    
@@ -163,8 +162,8 @@ public class Robot extends TimedRobot {
       {
          m_robotDrive.tankDrive(0, 0);
          //Timer.delay(5);
-         speed = speed * .8; 
-         System.out.printnln(BalanceSpeed);
+         BalanceSpeed = BalanceSpeed * .8; 
+         System.out.println(BalanceSpeed);
          /*  Speed multiplier --  Multiplies speed by .8 once robot flattens, 
          slowing it down upon each time it hits "flat", as It will hit "flat" multiple times, making
          smaller adjustments each time. This is the overshoot adjustment  

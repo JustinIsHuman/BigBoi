@@ -92,15 +92,21 @@ public class Robot extends TimedRobot {
   }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
-  double speed = .5;
+  double BalanceSpeed = .53;
   @Override
   public void autonomousInit() //Runs when autonomous mode begins 
-   {
-    speed = .5;
+  {
+    if (!isAutonomous())
+    { 
+      //If it isn't in "auto" then quit --This is the fix for the teleop auto bug 
+      return; // (Teleop auto bug is where auto remains running when teleop is enabled)
+    }
 
+
+
+    m_robotDrive.tankDrive(0, 0);   
+    BalanceSpeed = .53;
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
-    
-
     //Test Code
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
@@ -110,40 +116,58 @@ public class Robot extends TimedRobot {
     gyro.reset();
     Timer.delay(5);
     double axis = gyro.getAngle();
-    while(axis < 12.0 && axis > -12.0)
+
+    long start_time = System.currentTimeMillis(); //Timeout (in ms)
+    long wait_time = 4000;
+   
+
+
+
+    while((axis < 12 && axis > -12.0)) //Need to add code to wait four seconds and time out if it hasn't hit a change in range
     {
       axis = gyro.getAngle();
       axis = Math.round(axis);
-      m_robotDrive.tankDrive(-.6, .6);  
+      m_robotDrive.tankDrive(-.5, .5);  
+
+      if(System.currentTimeMillis() > System.currentTimeMillis() + 4000)
+      {
+         m_robotDrive.tankDrive(0, 0);  
+      }
     }
     m_robotDrive.tankDrive(0, 0);    
-    System.out.println("hit");
+    System.out.println("hit station or timeout ");
     
   }
   @Override
   public void autonomousPeriodic() //Autonomous mode
   {  
-
-    //This is where the autonomous code goes 
-    //Auto Balance
+    
+    
+      //Auto Balance
       double axis = gyro.getAngle();
       axis = Math.round((axis));
       System.out.println(axis);
+
       SmartDashboard.putNumber("Gyro", axis);
 
       if(axis > 0.0)//Forwards
       {
-        m_robotDrive.tankDrive(speed, -speed);
+        m_robotDrive.tankDrive(-BalanceSpeed, BalanceSpeed);
       }
       else if (axis < 0.0)//Backwards
       {
-        m_robotDrive.tankDrive(-speed, speed);    
+        m_robotDrive.tankDrive(BalanceSpeed, -BalanceSpeed);    
       }
       else//If flat
       {
          m_robotDrive.tankDrive(0, 0);
          //Timer.delay(5);
-         speed = speed * .8;
+         BalanceSpeed = BalanceSpeed * .8; 
+         System.out.println(BalanceSpeed);
+         /*  Speed multiplier --  Multiplies speed by .8 once robot flattens, 
+         slowing it down upon each time it hits "flat", as It will hit "flat" multiple times, making
+         smaller adjustments each time. This is the overshoot adjustment  
+         */
          System.out.println("flat");   
       }    
   }
@@ -157,38 +181,41 @@ public class Robot extends TimedRobot {
 
     if (m_autonomousCommand != null) 
     {
-      m_autonomousCommand.cancel(); //If autonomous is running (NOT null) then cancel
-    }
+      m_autonomousCommand.cancel(); //If autonomous is running (NOT null) then cancel auto 
+    } 
+    m_robotDrive.tankDrive(0, 0);   
     pcmCompressor.disable(); //Since compressor automatically turns on when teleop enabled -- disable 
     Solenoid.set(Value.kOff); 
     m_robotDrive.setSafetyEnabled(true);
-   // gyro.calibrate();
-
   }
 
   @Override
   public void teleopPeriodic() //Operator mode func
    {
   
-      double axis = gyro.getAngle();
+      double axis = gyro.getAngle(); //Gyro Init
       axis = Math.round((axis));
-      System.out.println(axis);
+      System.out.println(axis); //Print stuff
       System.out.flush();
 
-      if(m_driverController.getRightStickButtonPressed())
+      if(m_driverController.getRightStickButtonPressed()) //When right stick button pressed, goS
       {
-        m_arm.set(.2);
-        Timer.delay(.5);
+        m_arm.set(.58);
+        Timer.delay(1);
+        m_arm.set(0);
+      }
+
+      if(m_driverController.getLeftStickButtonPressed()) //Test arm toggle code
+      {
+        m_arm.set(-.58);
+       
+      }
+      if(m_driverController.getLeftStickButtonPressed() == false)
+      {
         m_arm.set(0);
 
       }
-      if(m_driverController.getLeftStickButtonPressed())
-      {
-        m_arm.set(-.2);
-        Timer.delay(.5);
-        m_arm.set(0);
-      }
-      //Accuracy mode -- (Code untested) Possibly control an LED stip with speed modes?
+      
       if(m_driverController.getYButtonPressed())//Drive mode toggle
       { 
         System.out.println("Y press; mode: " + mode); 
@@ -201,7 +228,7 @@ public class Robot extends TimedRobot {
           mode = 0;
         }
       }
-      if(m_driverController.getXButtonPressed()) // Speed mode toggle
+      if(m_driverController.getXButtonPressed()) // Speed mode toggle conditional 
       {
         if(speed1 == 3)
         {
@@ -280,7 +307,11 @@ public class Robot extends TimedRobot {
     CommandScheduler.getInstance().cancelAll();//Cancels everything when running test mode
 
     pcmCompressor.disable();
-    gyro.reset();
+    m_robotDrive.tankDrive(-.5, .5);
+    Timer.delay(4);
+    m_robotDrive.tankDrive(0, 0);
+    Timer.delay(4);
+    //gyro.reset();
     
   }
 

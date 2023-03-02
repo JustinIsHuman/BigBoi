@@ -39,20 +39,30 @@ public class Robot extends TimedRobot {
 
   private Command m_autonomousCommand;
   private RobotContainer m_robotContainer;
-  private final MotorController m_leftMotor = new PWMVictorSPX(1);
   private final MotorController m_rightMotor = new PWMVictorSPX(0);
+  private final MotorController m_leftMotor = new PWMVictorSPX(1);
   private final MotorController m_arm = new PWMVictorSPX(2);
+  private final MotorController m_swivel = new PWMVictorSPX(3);
+  public final int rightTrigger = 3;
+  public final int leftTrigger = 2;
+
+  
   private final XboxController m_driverController = new XboxController(0);
+
   private final DifferentialDrive m_robotDrive = new DifferentialDrive(m_leftMotor, m_rightMotor);
   private final DoubleSolenoid Solenoid = new DoubleSolenoid(1, PneumaticsModuleType.CTREPCM, 4, 5); //Need to ensure ports are correct
   private final Compressor pcmCompressor = new Compressor(1, PneumaticsModuleType.CTREPCM); //Ensure port 
   ADXRS450_Gyro gyro = new ADXRS450_Gyro();
+
+  
+
   /**
    * This function is run when the robot is first started up and should be used for any
    * initialization code.
    */
   @Override
-  public void robotInit() {
+  public void robotInit()
+  {
     gyro.calibrate();
 
     m_rightMotor.setInverted(true); //  Inverts motor
@@ -101,11 +111,12 @@ public class Robot extends TimedRobot {
       //If it isn't in "auto" then quit --This is the fix for the teleop auto bug 
       return; // (Teleop auto bug is where auto remains running when teleop is enabled)
     }
+    m_robotDrive.setMaxOutput(1); 
 
 
 
     m_robotDrive.tankDrive(0, 0);   
-    BalanceSpeed = .53;
+    BalanceSpeed = .7; //Starting Balance Speeed
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
     //Test Code
     if (m_autonomousCommand != null) {
@@ -129,10 +140,14 @@ public class Robot extends TimedRobot {
       axis = Math.round(axis);
       m_robotDrive.tankDrive(-.5, .5);  
 
-      if(System.currentTimeMillis() > System.currentTimeMillis() + 4000)
+      if(System.currentTimeMillis() > start_time + 4000)
       {
          m_robotDrive.tankDrive(0, 0);  
+         System.out.println("Stop");    
+         Timer.delay(5);
+         break;
       }
+
     }
     m_robotDrive.tankDrive(0, 0);    
     System.out.println("hit station or timeout ");
@@ -179,6 +194,7 @@ public class Robot extends TimedRobot {
   public void teleopInit() //Runs when operator mode begins
   {
 
+   
     if (m_autonomousCommand != null) 
     {
       m_autonomousCommand.cancel(); //If autonomous is running (NOT null) then cancel auto 
@@ -187,6 +203,7 @@ public class Robot extends TimedRobot {
     pcmCompressor.disable(); //Since compressor automatically turns on when teleop enabled -- disable 
     Solenoid.set(Value.kOff); 
     m_robotDrive.setSafetyEnabled(true);
+
   }
 
   @Override
@@ -205,17 +222,38 @@ public class Robot extends TimedRobot {
         m_arm.set(0);
       }
 
+  
+    if(m_driverController.getLeftBumperPressed() == true)
+    {
+      m_swivel.set(-0.7);
+
+    }
+    else if (m_driverController.getLeftBumperPressed() == false)
+    {
+      m_swivel.set(0);
+    }
+
+    if(m_driverController.getRightBumperPressed() == true)
+    {
+      m_swivel.set(0.7);
+    }
+    else if (m_driverController.getRightBumperPressed() == false)
+    {
+      m_swivel.set(-0.7);
+    }
+  
+      /* 
       if(m_driverController.getLeftStickButtonPressed()) //Test arm toggle code
       {
         m_arm.set(-.58);
        
       }
-      if(m_driverController.getLeftStickButtonPressed() == false)
+      if(m_driverController.getLeftStickButtonPressed() == false) // If arm not being pressed
       {
         m_arm.set(0);
 
       }
-      
+      */
       if(m_driverController.getYButtonPressed())//Drive mode toggle
       { 
         System.out.println("Y press; mode: " + mode); 
@@ -228,7 +266,7 @@ public class Robot extends TimedRobot {
           mode = 0;
         }
       }
-      if(m_driverController.getXButtonPressed()) // Speed mode toggle conditional 
+      if(m_driverController.getXButtonPressed()) //Speed mode toggle conditional 
       {
         if(speed1 == 3)
         {
@@ -275,15 +313,7 @@ public class Robot extends TimedRobot {
     {
      Solenoid.toggle();
     }
-     if(m_driverController.getRightBumperPressed())//Solenoid shi
-     {
-       Solenoid.set(Value.kForward);
-     }
-      if(m_driverController.getLeftBumperPressed())//Solenoid shi
-     {
-       Solenoid.set(Value.kReverse);
-     }
-  
+   
     if(m_driverController.getBButtonPressed()) //Toggle compressor 
     {
       if(pcmCompressor.isEnabled())

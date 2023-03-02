@@ -13,11 +13,17 @@ Other Stuff I forgot
 Team Members
 
 Bryson Mills:
+
 Colin Haynes:
+
 Justin Hunter:
+
 River Evers:
+
 Brendon Heilman:
+
 Christian Heilman: 
+
 Caiden Treesh:
 
 

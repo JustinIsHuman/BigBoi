@@ -22,5 +22,6 @@ Caiden Treesh:
 
 
 TODO: 
-Fix Arm and arm swivel \r\n
+Fix Arm and arm swivel
+
 "Arm Drive" mode? 

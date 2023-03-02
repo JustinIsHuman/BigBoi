@@ -5,10 +5,14 @@ Contact me: @Justin.py
 
 Features:
 Auto Balance w/ Timeout Protection 
+
 Speed Modes
+
 Drive Modes
+
 Other Stuff I forgot 
 
+-------------------
 
 Team Members
 
@@ -25,6 +29,9 @@ Brendon Heilman:
 Christian Heilman: 
 
 Caiden Treesh:
+
+
+---------------
 
 
 TODO: 
